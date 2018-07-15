@@ -45,14 +45,14 @@ class Misty m where
 -- Relative Difficulty: 2
 instance Misty [] where
   banana f = flatten . map (\x -> f x)
-    where flatten = foldr1 (++) 
+    where flatten = foldr1 (++)
   unicorn x = [x]
 
 -- Exercise 8
 -- Relative Difficulty: 2
 instance Misty Maybe where
   banana f (Just x) = f x
-  banana f (Nothing) = Nothing 
+  banana f (Nothing) = Nothing
   unicorn = Just
 
 -- banana :: forall a b. (a -> t -> b) -> (t -> a) -> t -> b
@@ -66,14 +66,14 @@ instance Misty ((->) t) where
 -- Relative Difficulty: 6
 instance Misty (EitherLeft t) where
   banana f (EitherLeft (Left x)) = f x
-  banana _ (EitherLeft (Right x)) = EitherLeft (Right x)  
+  banana _ (EitherLeft (Right x)) = EitherLeft (Right x)
   unicorn x = EitherLeft (Left x)
 
 -- Exercise 11
 -- Relative Difficulty: 6
 instance Misty (EitherRight t) where
   banana f (EitherRight (Right x)) = f x
-  banana _ (EitherRight (Left x)) = EitherRight (Left x)  
+  banana _ (EitherRight (Left x)) = EitherRight (Left x)
   unicorn x = EitherRight (Right x)
 
 
@@ -85,36 +85,35 @@ jellybean = banana (id)
 -- Exercise 13
 -- Relative Difficulty: 6
 apple :: (Misty m) => m a -> m (a -> b) -> m b
-apple ma mab = banana (\f -> banana (\x -> unicorn $ f x) ma) mab
+apple ma mab = banana (\f -> banana (unicorn . f) ma) mab
 
 -- Exercise 14
 -- Relative Difficulty: 6
 moppy :: (Misty m) => [a] -> (a -> m b) -> m [b]
-moppy xs f = foldl (\mxs x -> banana (\b -> banana (\xs' -> unicorn $ b : xs') mxs) (f x)) (unicorn []) xs 
+moppy xs f = foldl (\mxs x -> banana (\b -> banana (\xs' -> unicorn $ b : xs') mxs) (f x)) (unicorn []) xs
 
 -- Exercise 15
 -- Relative Difficulty: 6
 -- (bonus: use moppy)
 sausage :: (Misty m) => [m a] -> m [a]
-sausage = error "todo"
+sausage xs = moppy xs id
 
--- Exercise 16
--- Relative Difficulty: 6
+-- Exercise 16-- Relative Difficulty: 6
 -- (bonus: use apple + furry')
 banana2 :: (Misty m) => (a -> b -> c) -> m a -> m b -> m c
-banana2 = error "todo"
+banana2 f ma mb = apple mb (furry' f ma)
 
 -- Exercise 17
 -- Relative Difficulty: 6
 -- (bonus: use apple + banana2)
 banana3 :: (Misty m) => (a -> b -> c -> d) -> m a -> m b -> m c -> m d
-banana3 = error "todo"
+banana3 f ma mb mc = apple mc (banana2 f ma mb)
 
 -- Exercise 18
 -- Relative Difficulty: 6
 -- (bonus: use apple + banana3)
 banana4 :: (Misty m) => (a -> b -> c -> d -> e) -> m a -> m b -> m c -> m d -> m e
-banana4 = error "todo"
+banana4 f ma mb mc md = apple md (banana3 f ma mb mc)
 
 newtype State s a = State {
   state :: (s -> (s, a))
@@ -123,10 +122,17 @@ newtype State s a = State {
 -- Exercise 19
 -- Relative Difficulty: 9
 instance Fluffy (State s) where
-  furry = error "todo"
+  furry f (State sf) = State $
+        \s ->
+            let (newState, newVal) = sf s in
+            (newState, f newVal)
 
 -- Exercise 20
 -- Relative Difficulty: 10
 instance Misty (State s) where
-  banana = error "todo"
-  unicorn = error "todo"
+  banana fs (State s) = State $
+    \x -> let (newState, newVal) = s x
+              State (ns) = fs newVal in ns newState
+
+
+  unicorn a = State (\x -> (x, a))
